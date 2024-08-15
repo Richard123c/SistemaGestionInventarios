@@ -7,6 +7,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /**
  *
@@ -15,6 +18,7 @@ import java.awt.event.ActionListener;
 public class GestionProductosScreen extends JFrame{
     private JList<String> listaCategorias;
     private DefaultListModel<String> modeloCategorias;
+    private JButton btnGuardarCategoria;
     
     public GestionProductosScreen(){
         //Configura el JFrame
@@ -42,10 +46,12 @@ public class GestionProductosScreen extends JFrame{
         JButton btnAgregarCategoria = new JButton("Agregar");
         JButton btnEliminarCategoria = new JButton("Eliminar");
         JButton btnModificarCategoria = new JButton("Modificar");
+        btnGuardarCategoria = new JButton("Guardar");
         
         panelBotonesCategorias.add(btnAgregarCategoria);
         panelBotonesCategorias.add(btnEliminarCategoria);
         panelBotonesCategorias.add(btnModificarCategoria);
+        panelBotonesCategorias.add(btnGuardarCategoria);
 
         panelCategorias.add(panelBotonesCategorias, BorderLayout.SOUTH);
         
@@ -93,6 +99,15 @@ public class GestionProductosScreen extends JFrame{
                 }
             }
         });
+        
+        btnGuardarCategoria.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                guardarCategoriaEnArchivo();
+            }
+        });
+        
+        
     }
     
     private void agregarCategoria() {
@@ -129,8 +144,23 @@ public class GestionProductosScreen extends JFrame{
 
         // Agregar la nueva categoría
         modeloCategorias.addElement(nombre + (descripcion.isEmpty() ? "" : " - " + descripcion));
+        
+        
     }
 }
+    private void guardarCategoriaEnArchivo() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("categorias.txt", true))) {
+            for (int i = 0; i < modeloCategorias.getSize(); i++) {
+                String categoria = modeloCategorias.get(i);
+                writer.write(categoria);
+                writer.newLine();
+            }
+            JOptionPane.showMessageDialog(this, "Categorías guardadas exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al guardar las categorías en el archivo.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
