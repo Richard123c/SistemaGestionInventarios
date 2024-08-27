@@ -85,6 +85,7 @@ public class GestionProductosScreen extends JFrame{
                 int selectedIndex = listaCategorias.getSelectedIndex();
                 if (selectedIndex != -1) {
                     modeloCategorias.remove(selectedIndex);
+                    eliminarCategoria();
                 }
             }
         });
@@ -153,9 +154,47 @@ public class GestionProductosScreen extends JFrame{
     private void eliminarCategoria(){
         int selectedIndex = listaCategorias.getSelectedIndex();
         if  (selectedIndex != -1) {
-            modeloCategorias.remove(selectedIndex);
-            //Logica adicional para eliminar el archivo
-            guardarCategoriasActualizadasEnArchivo();
+            //Muestra cuadro de dialogo de confirmacion
+            int confirm = JOptionPane.showConfirmDialog(this, 
+      "¿Estas seguro de que deseas eliminar esta categoria?", "Confirmar eliminacion", JOptionPane.YES_NO_OPTION);
+            
+            //Si el usuario confirma la eliminacion
+            if (confirm == JOptionPane.YES_OPTION) {
+                String categoriaAEliminar = modeloCategorias.get(selectedIndex);
+                modeloCategorias.remove(selectedIndex);
+                //Guardar cambios en el archivo despues de eliminar
+                eliminarCategoriaDelArchivo(categoriaAEliminar);
+            }
+        } else {
+            //Mostrar mensaje de advertencia si no hay una categoria seleccionada
+            JOptionPane.showMessageDialog(this, 
+      "Por favor, selecciona una categoria para eliminar.", "Eliminar categoria", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+    
+    private void eliminarCategoriaDelArchivo(String categoriaAEliminar){
+        File archivo = new File("categorias.txt");
+        File archivoTemporal = new File("categorias_temp.txt");
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(archivo));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(archivoTemporal))) {
+            
+            String linea;
+            while ((linea = reader.readLine()) != null) {
+                if (!linea.split("\\|")[0].trim().equals(categoriaAEliminar.split(" - ")[0].trim())){
+                    writer.write(linea);
+                    writer.newLine();
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al eliminar la categoria del archivo.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        
+        //Reemplazar el archivo original con el archivo temporal actualizado
+        if (archivo.delete()) {
+            archivoTemporal.renameTo(archivo);
+        } else {
+            JOptionPane.showMessageDialog( this, "Error al actualizar el archivo de categorias,", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -223,6 +262,17 @@ public class GestionProductosScreen extends JFrame{
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Error al guardar las categorías en el archivo.", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    //Metodo para verificar si una categoria ya existe en el modelo
+    private boolean categoriaYaExiste(String nombreCategoria) {
+        for (int i = 0; i < modeloCategorias.getSize(); i++) {
+            String categoriaExistente = modeloCategorias.get(i).split(" - ")[0];
+            if (categoriaExistente.equalsIgnoreCase(nombreCategoria)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     private void guardarCategoriasActualizadasEnArchivo() {
