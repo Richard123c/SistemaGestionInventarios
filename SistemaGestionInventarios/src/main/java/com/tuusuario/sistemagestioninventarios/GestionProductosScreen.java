@@ -12,6 +12,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  *
@@ -21,6 +22,7 @@ public class GestionProductosScreen extends JFrame{
     private JList<String> listaCategorias;
     private DefaultListModel<String> modeloCategorias;
     private JButton btnGuardarCategoria;
+    private ArrayList<Producto> listaProductos;
     
     public GestionProductosScreen(){
         //Configura el JFrame
@@ -38,6 +40,7 @@ public class GestionProductosScreen extends JFrame{
         // Lista de categorías
         modeloCategorias = new DefaultListModel<>();
         listaCategorias = new JList<>(modeloCategorias);
+        listaProductos = new ArrayList<> ();
         JScrollPane scrollCategorias = new JScrollPane(listaCategorias);
         panelCategorias.add(scrollCategorias, BorderLayout.CENTER);
         
@@ -48,12 +51,14 @@ public class GestionProductosScreen extends JFrame{
         JButton btnAgregarCategoria = new JButton("Agregar");
         JButton btnEliminarCategoria = new JButton("Eliminar");
         JButton btnModificarCategoria = new JButton("Modificar");
+        JButton btnCaracteristicas = new JButton("Caracteristicas de ProductoS");
         btnGuardarCategoria = new JButton("Guardar");
         
         panelBotonesCategorias.add(btnAgregarCategoria);
         panelBotonesCategorias.add(btnEliminarCategoria);
         panelBotonesCategorias.add(btnModificarCategoria);
         panelBotonesCategorias.add(btnGuardarCategoria);
+        panelBotonesCategorias.add(btnCaracteristicas);
 
         panelCategorias.add(panelBotonesCategorias, BorderLayout.SOUTH);
         
@@ -67,6 +72,7 @@ public class GestionProductosScreen extends JFrame{
         // Añadir paneles al JFrame
         add(panelCategorias, BorderLayout.WEST);
         add(panelPrincipal, BorderLayout.CENTER);
+        add(panelBotonesCategorias, BorderLayout.NORTH);
         
         // Agregar acciones a los botones
         btnAgregarCategoria.addActionListener(new ActionListener() {
@@ -110,7 +116,15 @@ public class GestionProductosScreen extends JFrame{
             }
         });
         
+        btnCaracteristicas.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                abrirCaracteristicasProductos();
+            }
+        });
         
+        //Simula cargar productos
+        cargarProductosSimulados();
     }
     
     private void agregarCategoria() {
@@ -148,22 +162,26 @@ public class GestionProductosScreen extends JFrame{
         // Agregar la nueva categoría
         modeloCategorias.addElement(nombre + (descripcion.isEmpty() ? "" : " - " + descripcion));
         
+        
     }
 }
     
     private void eliminarCategoria(){
         int selectedIndex = listaCategorias.getSelectedIndex();
         if  (selectedIndex != -1) {
+            String categoriaAEliminar = modeloCategorias.get(selectedIndex);
             //Muestra cuadro de dialogo de confirmacion
             int confirm = JOptionPane.showConfirmDialog(this, 
       "¿Estas seguro de que deseas eliminar esta categoria?", "Confirmar eliminacion", JOptionPane.YES_NO_OPTION);
             
             //Si el usuario confirma la eliminacion
             if (confirm == JOptionPane.YES_OPTION) {
-                String categoriaAEliminar = modeloCategorias.get(selectedIndex);
+                
                 modeloCategorias.remove(selectedIndex);
                 //Guardar cambios en el archivo despues de eliminar
-                eliminarCategoriaDelArchivo(categoriaAEliminar);
+                eliminarAsociacionesDeProductos(categoriaAEliminar);
+                
+                guardarCategoriasEnArchivo();
             }
         } else {
             //Mostrar mensaje de advertencia si no hay una categoria seleccionada
@@ -303,6 +321,86 @@ public class GestionProductosScreen extends JFrame{
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Error al cargar las categorias desde el archivo.", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    private void eliminarAsociacionesDeProductos(String categoriaAEliminar) {
+        Iterator<Producto> iterator = listaProductos.iterator();
+        
+        while (iterator.hasNext()) {
+            Producto producto = iterator.next();
+            if (producto.getCategoria(). equals(categoriaAEliminar)) {
+                producto.setCategoria("Sin categoria");
+                
+            }
+        }
+        
+        guardarProductosEnArchivo();
+    }
+    
+    private void guardarProductosEnArchivo() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("Producto.txt",true))) {
+            for (int i = 0; i < listaProductos.size(); i++) {
+                Producto producto = listaProductos.get(i);
+                String nombre = producto.getNombre();
+                String descripcion = producto.getDescripcion();
+                
+                writer.write(nombre + "|" + descripcion);
+                writer.newLine();  
+            }
+         JOptionPane.showMessageDialog(this, "Productos guardadas exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al guardar los productos en el archivo.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void cargarProductosSimulados(){
+        //Simulacion de carga de productos
+        listaProductos.add(new Producto("Producto 1", "Descripcion 1", "categoria 1"));
+        listaProductos.add(new Producto("Producto 2", "Descripcion 2", "Categoria 2"));
+        listaProductos.add(new Producto("Producto 3", "Descripcion 3", "Categoria 1" ));
+    }
+    
+    //Maneja los productos y sus categorias
+    class Producto {
+        private String nombre;
+        private String descripcion;
+        private String categoria;
+        
+        public Producto(String nombre, String descripcion, String categoria) {
+            this.nombre=  nombre;
+            this.descripcion = descripcion;
+            this.categoria = categoria;
+        }
+        
+        public String getDescripcion(){
+            return descripcion;
+        }
+        
+        public void setDescripcion(String descripcion){
+            this.descripcion = descripcion;
+        }
+        
+        public String getNombre(){
+            return nombre;
+        }
+        
+        public void setNombre(String nombre) {
+            this.nombre = nombre;
+        }
+        
+        public String getCategoria(){
+            return categoria;
+        }
+        
+        public void setCategoria(String categoria) {
+            this.categoria = categoria;
+        }
+    }
+    
+    private void abrirCaracteristicasProductos() {
+        //Crea una nueva ventana o panel para gestionar las caracteristicas
+        CaracteristicasProductosScreen caracteristicasScreen = new  CaracteristicasProductosScreen();
+        caracteristicasScreen.setVisible(true);
     }
 
 
