@@ -8,6 +8,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 /**
  *
  * @author Lenovo
@@ -51,7 +54,7 @@ public class CaracteristicasProductosScreen extends JFrame {
         
         JPanel panelBotonesCaracteristicas = new JPanel(new GridLayout(1, 3, 10, 0));
         JButton btnAgregarCaracteristica = new JButton("Agregar");
-        JButton btnEliminarCaracteristica = new JButton("Elimnar");
+        JButton btnEliminarCaracteristica = new JButton("Eliminar");
         JButton btnModificarCaracteristica = new JButton("Modificar");
         
         panelBotonesCaracteristicas.add(btnAgregarCaracteristica);
@@ -116,6 +119,54 @@ public class CaracteristicasProductosScreen extends JFrame {
                 }
             }
         }) ;       
+    }
+    
+    private void agregarCaracteristica() {
+        JTextField nombreField = new JTextField (10);
+        JTextArea descripcionArea = new JTextArea (5, 20);
+        descripcionArea.setLineWrap(true);
+        descripcionArea.setWrapStyleWord(true);
+        
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JLabel("Nombre de la caracteristica:"), BorderLayout.NORTH);
+        panel.add(nombreField, BorderLayout.CENTER);
+        panel.add(new JLabel("Descripcion (opcional):"), BorderLayout.SOUTH);
+        panel.add(new JScrollPane(descripcionArea), BorderLayout.SOUTH);
+        
+        int result = JOptionPane.showConfirmDialog(null, panel, "Agregar nueva caracteristica", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        
+        if (result == JOptionPane.OK_OPTION){
+            String nombre = nombreField.getText().trim();
+            String descripcion = descripcionArea.getText().trim();
+            
+            if (nombre.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El nombre de la caracteristica no puede estar vacio.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            } 
+            
+            for (int i = 0; i < modeloCaracteristicas.getSize(); i++) {
+                String caracteristicaExistente = modeloCaracteristicas.get(i).split(" - ") [0];
+                if (caracteristicaExistente.equalsIgnoreCase(nombre)) {
+                    JOptionPane.showMessageDialog(this, "Ya existe una caracteristica con ese nombre.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+        
+        
+        //Agrega la nueva caracteristica
+        modeloCaracteristicas.addElement(nombre + (descripcion.isEmpty() ? "" : " - " + descripcion));
+        
+        guardarCaracteristicaEnArchivo(nombre, descripcion);
+        }
+    }
+    
+    private void guardarCaracteristicaEnArchivo(String nombre, String descripcion) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("caracteristicas.txt", true))) {
+            writer.write(nombre + "|" + descripcion);
+            writer.newLine();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al guardar la caracteristica en el archivo.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
         
         public static void main(String[] args) {
