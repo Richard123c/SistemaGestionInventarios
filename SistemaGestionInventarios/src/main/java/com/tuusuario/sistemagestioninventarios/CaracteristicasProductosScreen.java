@@ -8,7 +8,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 /**
@@ -19,6 +22,9 @@ public class CaracteristicasProductosScreen extends JFrame {
     
     private JList<String> listaCaracteristicas;
     private DefaultListModel<String> modeloCaracteristicas;
+    private JTextField txtNombreCaracteristica;
+    private JTextArea txtDescripcionCaracteristica;
+    
     
     public CaracteristicasProductosScreen() {
         setTitle("Caracteristicas de Productos");
@@ -57,9 +63,11 @@ public class CaracteristicasProductosScreen extends JFrame {
         JButton btnEliminarCaracteristica = new JButton("Eliminar");
         JButton btnModificarCaracteristica = new JButton("Modificar");
         
+        
         panelBotonesCaracteristicas.add(btnAgregarCaracteristica);
         panelBotonesCaracteristicas.add(btnEliminarCaracteristica);
         panelBotonesCaracteristicas.add(btnModificarCaracteristica);
+        
         
         panelCaracteristicas.add(panelBotonesCaracteristicas, BorderLayout.SOUTH);
         
@@ -118,14 +126,26 @@ public class CaracteristicasProductosScreen extends JFrame {
                     JOptionPane.showMessageDialog(null, "Por favor, selecciona una caracteristica para modificar.", "Modificar caracteristica", JOptionPane.WARNING_MESSAGE);
                 }
             }
-        }) ;       
+        }) ;   
+        
+        btnGuardar.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            agregarCaracteristica(); // Llamamos al método que guarda la característica
+        }
+   });
+        
     }
     
     private void agregarCaracteristica() {
         JTextField nombreField = new JTextField (10);
+        txtNombreCaracteristica = new JTextField(20); 
         JTextArea descripcionArea = new JTextArea (5, 20);
+        txtDescripcionCaracteristica = new JTextArea(5,20);
         descripcionArea.setLineWrap(true);
         descripcionArea.setWrapStyleWord(true);
+        
+        
         
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(new JLabel("Nombre de la caracteristica:"), BorderLayout.NORTH);
@@ -152,7 +172,6 @@ public class CaracteristicasProductosScreen extends JFrame {
                 }
             }
         
-        
         //Agrega la nueva caracteristica
         modeloCaracteristicas.addElement(nombre + (descripcion.isEmpty() ? "" : " - " + descripcion));
         
@@ -161,14 +180,137 @@ public class CaracteristicasProductosScreen extends JFrame {
     }
     
     private void guardarCaracteristicaEnArchivo(String nombre, String descripcion) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("caracteristicas.txt", true))) {
+        try {BufferedWriter writer = new BufferedWriter(new FileWriter("caracteristicas.txt", true));
             writer.write(nombre + "|" + descripcion);
             writer.newLine();
+            writer.close ();
+            
+            JOptionPane.showMessageDialog(this, "Característica guardada exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Error al guardar la caracteristica en el archivo.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-        
+    
+    private boolean validarCaracteristicaUnica(String nombre) {
+        try (BufferedReader reader = new BufferedReader (new FileReader ("caracteristicas.txt"))) {
+            String linea;
+            while ((linea = reader.readLine()) != null) {
+                String[] partes = linea.split("\\|");
+                if (partes.length > 0) {
+                    String nombreExistente = partes[0].trim();
+                    if (nombreExistente.equalsIgnoreCase(nombre.trim())){
+                        
+                    }
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al leer el archivo de caracteristicas.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return true;
+    }
+    
+    private void cargarCaracteristicasDesdeArchivo(){
+        try (BufferedReader reader = new BufferedReader (new FileReader ("caracteristicas.txt"))) {
+        String linea;
+        while ((linea = reader.readLine()) != null) {
+            String[] partes = linea.split("\\|");
+            if (partes.length ==2) {
+                String nombre = partes[0];
+                String descripcion = partes[1];
+                modeloCaracteristicas.addElement(nombre + " - " + descripcion);
+            }
+          } 
+        }catch (IOException e) {
+             JOptionPane.showMessageDialog(this, "Error al leer el archivo de características.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void modificarCaracteristica() {
+        int selectedIndex = listaCaracteristicas.getSelectedIndex();
+        if (selectedIndex != -1) {
+            String caracteristicaSeleccionada = listaCaracteristicas.getSelectedValue();
+            String[] partes = caracteristicaSeleccionada.split(" - ");
+            
+            String nombreOriginal = partes[0];
+            String descripcionOriginal = partes[1];
+            
+            String nuevoNombre = txtNombreCaracteristica.getText();
+            String nuevaDescripcion = txtDescripcionCaracteristica.getText(); 
+            
+            if (nuevoNombre.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El nombre de la característica no puede estar vacío.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+                
+            } else if (!validarNuevoNombreUnico(nuevoNombre, nombreOriginal)){
+                 JOptionPane.showMessageDialog(this, "Ya existe una característica con ese nombre.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+                
+            } else {
+                modificarCaracteristicaEnArchivo(nombreOriginal, nuevoNombre, nuevaDescripcion);
+                cargarCaracteristicasDesdeArchivo();
+                JOptionPane.showMessageDialog(this, "Característica modificada exitosamente.", "Exito", JOptionPane.WARNING_MESSAGE);
+                
+            }
+            } else {
+                JOptionPane.showMessageDialog(this, "Por favor, selecciona una característica para modificar.", "Exito", JOptionPane.WARNING_MESSAGE);  
+                  
+        }
+    }
+    
+    private void modificarCaracteristicaEnArchivo(String nombreOriginal, String nuevoNombre, String nuevaDescripcion) {
+         File archivoOriginal = new File("caracteristicas.txt");
+         File archivoTemporal = new File("caracteristicas_temp.txt");
+         
+         try (BufferedReader reader = new BufferedReader(new FileReader(archivoOriginal));
+              BufferedWriter writer = new BufferedWriter(new FileWriter(archivoTemporal))) {
+             
+             String linea;
+             
+            while ((linea = reader.readLine()) != null) {
+            String[] partes = linea.split("\\|");
+            String nombreExistente = partes[0];
+             
+              // Si se encuentra la característica que se va a modificar
+            if (nombreExistente.equalsIgnoreCase(nombreOriginal)) {
+                //Escribe la linea con el nuevo nombre y descripcion
+                writer.write(nuevoNombre + "|" + nuevaDescripcion);
+            } else {
+                
+                writer.write(linea);
+            }
+            writer.newLine();
+         }
+         } catch (IOException e) {
+             JOptionPane.showMessageDialog(this, "Error al modificar la característica en el archivo.", "Error", JOptionPane.ERROR_MESSAGE);
+             return;
+         }
+         
+         if (archivoOriginal.delete()) {
+             archivoTemporal.renameTo(archivoOriginal);
+         } else {
+             JOptionPane.showMessageDialog(this, "Error al reemplazar el archivo original.", "Error", JOptionPane.ERROR_MESSAGE);
+         }
+    }
+    
+    private boolean validarNuevoNombreUnico(String nuevoNombre, String nombreOriginal) {
+        try (BufferedReader reader = new BufferedReader(new FileReader("caracteristicas.txt"))) {
+            String linea;
+            
+            while((linea = reader.readLine()) != null) {
+                String[] partes = linea.split("\\|");
+                
+                if (partes[0].equalsIgnoreCase(nuevoNombre) && !partes[0].equalsIgnoreCase(nombreOriginal)) {
+                    return false;
+                }
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al leer el archivo de caractersticas.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return true;
+    }
+    
+     
+         
         public static void main(String[] args) {
             SwingUtilities.invokeLater(new Runnable() {
                @Override
