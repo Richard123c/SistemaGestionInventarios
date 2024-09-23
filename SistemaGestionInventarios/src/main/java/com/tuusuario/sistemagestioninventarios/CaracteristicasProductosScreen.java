@@ -309,6 +309,107 @@ public class CaracteristicasProductosScreen extends JFrame {
         return true;
     }
     
+    private void eliminarCaracteristica() {
+        int selectedIndex = listaCaracteristicas.getSelectedIndex();
+        if (selectedIndex != -1) {
+            // Obtener el nombre de la caracteristica seleccionada
+            String caracteristicaSeleccionada =listaCaracteristicas.getSelectedValue();
+            String[] partes = caracteristicaSeleccionada.split(" - ");
+            String nombreCaracteristica = partes[0]; 
+            
+            int confirmacion = JOptionPane.showConfirmDialog( this,
+            "¿Estas seguro de que deseas eliminar la caracteristica: " + nombreCaracteristica + "?", 
+            "Confirmar eliminacion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            
+            if (confirmacion == JOptionPane.YES_OPTION) {
+                //Eliminar del archivo
+                eliminarCaracteristicaDelArchivo(nombreCaracteristica);
+                eliminarAsociacionCaracteristicasEnProductos(nombreCaracteristica);
+                cargarCaracteristicasDesdeArchivo();
+                JOptionPane.showMessageDialog(this, "Caracterictica eliminada exitosamente.", "Exito", JOptionPane.INFORMATION_MESSAGE); 
+            } else {
+                JOptionPane.showMessageDialog(this, "La eliminacion ha sido cancelada.", "Cancelado", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Por favor, selecciona una caracteristica para eliminar.", "Error", JOptionPane.ERROR_MESSAGE);
+        }    
+    }
+        
+        private void eliminarCaracteristicaDelArchivo(String nombreCaracteristica){
+            File archivoOriginal = new File("caracteristicas.txt");
+            File archivoTemporal = new File("caracteristicas_temp.txt");
+            
+            try (BufferedReader reader = new BufferedReader(new FileReader(archivoOriginal));
+                    BufferedWriter writer = new BufferedWriter(new FileWriter(archivoTemporal))) {
+                
+                String linea;
+                while ((linea = reader.readLine()) != null) {
+                        String[] partes = linea.split("\\|");
+                        String nombreExistente = partes[0];
+                        
+                        if (!nombreExistente.equalsIgnoreCase(nombreCaracteristica)) {
+                            writer.write(linea);
+                            writer.newLine();
+                        }
+                    }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al eliminar la caracteristica del archivo.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            
+            // Eliminar el archivo original
+            if (archivoOriginal.delete()) {
+                //Renombrar el archivo original
+                if (!archivoTemporal.renameTo(archivoOriginal)) {
+                    JOptionPane.showConfirmDialog(this, "Error al renombrar el archivo temporal.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showConfirmDialog(this, "Error al eliminar el archivo original.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+        private void eliminarAsociacionCaracteristicasEnProductos(String nombreCaracteristica) {
+            File archivoProductosOriginal = new File("productos.txt");
+            File archivoProductosTemporal = new File("productos_temp.txt");
+            
+             try (BufferedReader reader = new BufferedReader(new FileReader(archivoProductosOriginal));
+                  BufferedWriter writer = new BufferedWriter(new FileWriter(archivoProductosTemporal))) {
+
+                
+                String linea;
+                while ((linea = reader.readLine()) != null) {
+                    String[] partes = linea.split("\\|");
+                    String listaCaracteristicas = partes[2];
+                    String[] caracteristicas = listaCaracteristicas.split(",");
+                    
+                    //Crea una nueva lista de caracteristicas, excluyendo la caracteristica eliminada
+                    StringBuilder nuevasCaracteristicas = new StringBuilder();
+                    for (String caracteristica : caracteristicas) {
+                        if (!caracteristica.equalsIgnoreCase(nombreCaracteristica)) {
+                            if (nuevasCaracteristicas.length() > 0) {
+                                nuevasCaracteristicas.append(",");
+                            }
+                            nuevasCaracteristicas.append(caracteristicas);
+                        }
+                    }
+                    
+                    //Escribe la linea con la lista de caracteristicas actualizadas
+                    writer.write(partes[0] + "|" + partes[1] + "|" + nuevasCaracteristicas.toString());
+                    writer.newLine();
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al actualizar las asociaciones de productos.", "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+            
+            //Elimina el archivo original y renombrar el temporal
+            if (archivoProductosOriginal.delete()) {
+                if (!archivoProductosTemporal.renameTo(archivoProductosOriginal)) {
+                    JOptionPane.showMessageDialog(this, "Error al renombrar el archivo de productos.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al eliminar el archivo original de productos.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
      
          
         public static void main(String[] args) {
